@@ -13,7 +13,7 @@ const sampleFiles = [
 ];
 const categories = ['All files', 'Photos', 'Videos', 'Audio', 'Documents'];
 
-function Mark() { return <span className="brand-mark" aria-hidden="true"><span /></span>; }
+function Mark() { return <svg className="brand-mark" viewBox="0 0 48 40" role="img" aria-label="Memora cloud"><path d="M13.2 33.5C6.8 33.5 2 28.8 2 22.8c0-5.7 4.4-10.2 10-10.7C14.2 5.8 19.2 2 25.1 2c7.1 0 12.6 5.4 13 12.2 4.7.7 7.9 4.5 7.9 9.2 0 5.7-4.4 10.1-10.4 10.1H13.2Z" fill="url(#memoraCloud)"/><defs><linearGradient id="memoraCloud" x1="4" y1="3" x2="43" y2="37" gradientUnits="userSpaceOnUse"><stop stopColor="#F47BB2"/><stop offset="1" stopColor="#DF438C"/></linearGradient></defs><text x="24" y="27" textAnchor="middle" fontSize="17" fontWeight="800" fontFamily="Manrope, sans-serif" fill="white">M</text></svg>; }
 function Arrow() { return <span aria-hidden="true">↗</span>; }
 
 function Demo() {
@@ -43,6 +43,15 @@ function App() {
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
+  const [surveyOpen, setSurveyOpen] = useState(false);
+  const [surveyDone, setSurveyDone] = useState(false);
+  const [surveyBusy, setSurveyBusy] = useState(false);
+  const [surveyStatus, setSurveyStatus] = useState('');
+  const [surveyEmail, setSurveyEmail] = useState('');
+  const [willingToPay, setWillingToPay] = useState('maybe');
+  const [preferredPlan, setPreferredPlan] = useState('undecided');
+  const [storageUses, setStorageUses] = useState([]);
+  const [topPriority, setTopPriority] = useState('price');
   async function join(e) {
     e.preventDefault();
     setStatus('');
@@ -52,7 +61,26 @@ function App() {
     const { error } = await supabase.from('waitlist').insert({ name: name.trim() || null, email: email.trim().toLowerCase(), source: 'website' });
     setBusy(false);
     if (error) setStatus(error.code === '23505' ? 'You’re already on the list. We’ll be in touch!' : 'We couldn’t save that just now. Please try again.');
-    else { setStatus('You’re on the list. Thanks for being early!'); setEmail(''); setName(''); }
+    else { setSurveyEmail(email.trim().toLowerCase()); setStatus('You’re on the list. Thanks for being early!'); setEmail(''); setName(''); setSurveyOpen(true); }
+  }
+  async function submitInterest(e) {
+    e.preventDefault();
+    if (!supabase) { setSurveyStatus('The survey connection is being configured. Your waitlist place is saved.'); return; }
+    setSurveyBusy(true);
+    const { error } = await supabase.from('memora_interest').insert({
+      email: surveyEmail,
+      willing_to_pay: willingToPay,
+      preferred_plan: preferredPlan,
+      storage_uses: storageUses,
+      top_priority: topPriority
+    });
+    setSurveyBusy(false);
+    if (error) { setSurveyStatus('We couldn’t save your answers just now. Please try again or skip for now.'); return; }
+    setSurveyDone(true);
+    setSurveyStatus('Thank you. Your feedback will help shape Memora.');
+  }
+  function toggleStorageUse(value) {
+    setStorageUses(current => current.includes(value) ? current.filter(item => item !== value) : [...current, value]);
   }
   return <main>
     <nav className="nav container"><a href="#" className="wordmark"><Mark/><span>memora</span></a><div className="nav-links"><a href="#why">Why Memora</a><a href="#how">How it works</a><a href="#plans">Plans</a></div><a className="button nav-cta" href="#waitlist">Join the waitlist <Arrow/></a></nav>
@@ -64,6 +92,13 @@ function App() {
     <section className="how-section" id="how"><div className="container how-grid"><div><p className="eyebrow">A SIMPLE IDEA</p><h2>Your memories.<br/><em>More breathing room.</em></h2><p className="muted">The future Memora experience is being designed around three simple steps.</p><a className="text-link" href="#waitlist">Be part of what comes next <Arrow/></a></div><div className="steps"><div className="step"><span>01</span><div><h3>Bring your files together</h3><p>Photos, videos, audio and documents in one considered space.</p></div><b>↗</b></div><div className="step"><span>02</span><div><h3>Keep them close</h3><p>Browse and access the things you care about when you need them.</p></div><b>♡</b></div><div className="step"><span>03</span><div><h3>Make room on your device</h3><p>Only remove local copies after confirming your cloud copy is safe.</p></div><b>✧</b></div></div></div></section>
     <section className="section container plans" id="plans"><div className="plans-head"><div><p className="eyebrow">ROOM TO GROW</p><h2>A space that fits<br/><em>your life.</em></h2></div><p className="muted">We’re exploring flexible storage options. These are illustrative concepts, not available subscriptions or prices.</p></div><div className="plan-cards"><article className="plan-card"><span className="plan-label">A LITTLE SPACE</span><h3>Starter</h3><p>For everyday essentials.</p><div className="plan-capacity">50 <small>GB</small></div><div className="plan-line"/><span className="plan-foot">Proposed plan · Not available yet</span></article><article className="plan-card featured"><span className="plan-label">ROOM FOR MORE</span><h3>Plus</h3><p>For a growing collection.</p><div className="plan-capacity">200 <small>GB</small></div><div className="plan-line"/><span className="plan-foot">Proposed plan · Not available yet</span></article><article className="plan-card"><span className="plan-label">LOTS TO KEEP</span><h3>Max</h3><p>For the things you never want to lose.</p><div className="plan-capacity">1 <small>TB</small></div><div className="plan-line"/><span className="plan-foot">Proposed plan · Not available yet</span></article></div></section>
     <section className="waitlist-section" id="waitlist"><div className="container waitlist-wrap"><div><p className="eyebrow">BE HERE FROM THE BEGINNING</p><h2>Good things are<br/><em>worth keeping.</em></h2><p>Join the waitlist and follow the journey as Memora takes shape.</p></div><form className="waitlist-form" onSubmit={join}><label>Your name <span>Optional</span></label><input value={name} onChange={e=>setName(e.target.value)} placeholder="What should we call you?" maxLength={80}/><label>Email address</label><input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" maxLength={254}/><button className="button full" disabled={busy}>{busy?'Joining…':'Join the waitlist'} <Arrow/></button>{status && <p className="form-status" role="status">{status}</p>}<small>By joining, you agree to receive occasional Memora updates. You can opt out at any time.</small></form></div></section>
+    {surveyOpen && <div className="survey-backdrop"><section className="survey-modal" role="dialog" aria-modal="true" aria-labelledby="survey-title"><button className="survey-close" onClick={()=>setSurveyOpen(false)} aria-label="Close survey">×</button>{!surveyDone ? <><p className="eyebrow">HELP SHAPE MEMORA</p><h2 id="survey-title">A few quick questions?</h2><p className="survey-lead">Your answers help us understand what people actually need. This is optional and takes about a minute.</p><form onSubmit={submitInterest}>
+      <fieldset><legend>Would you pay for cloud storage?</legend><div className="choice-row">{[['yes','Yes'],['maybe','Maybe, depending on price'],['no','No']].map(([v,l])=><button type="button" key={v} className={willingToPay===v?'choice selected':'choice'} onClick={()=>setWillingToPay(v)}>{l}</button>)}</div></fieldset>
+      <fieldset><legend>Which plan would you most likely choose?</legend><div className="choice-row plan-choices">{[['starter_50gb','Starter · 50 GB'],['plus_200gb','Plus · 200 GB'],['max_1tb','Max · 1 TB'],['undecided','Not sure yet']].map(([v,l])=><button type="button" key={v} className={preferredPlan===v?'choice selected':'choice'} onClick={()=>setPreferredPlan(v)}>{l}</button>)}</div></fieldset>
+      <fieldset><legend>What would you store? <small>Choose all that apply</small></legend><div className="choice-row">{['Photos','Videos','Documents','Audio','Personal backups','A bit of everything'].map(v=><button type="button" key={v} className={storageUses.includes(v)?'choice selected':'choice'} onClick={()=>toggleStorageUse(v)}>{v}</button>)}</div></fieldset>
+      <fieldset><legend>What matters most to you?</legend><div className="choice-row">{[['price','Affordable pricing'],['capacity','More storage'],['privacy','Privacy and security'],['easy_access','Easy access'],['reliable_backup','Reliable backups']].map(([v,l])=><button type="button" key={v} className={topPriority===v?'choice selected':'choice'} onClick={()=>setTopPriority(v)}>{l}</button>)}</div></fieldset>
+      {surveyStatus && <p className="survey-status" role="status">{surveyStatus}</p>}<button className="button full" disabled={surveyBusy}>{surveyBusy?'Saving…':'Send my answers'}</button><button type="button" className="survey-skip" onClick={()=>setSurveyOpen(false)}>Skip for now</button>
+    </form></> : <div className="survey-thanks"><div className="survey-check">✓</div><h2 id="survey-title">Thank you for helping.</h2><p>{surveyStatus}</p><button className="button full" onClick={()=>setSurveyOpen(false)}>Done</button></div>}</section></div>}
     <footer className="footer container"><a href="#" className="wordmark"><Mark/><span>memora</span></a><span>Keep what matters.</span><span>© 2026 Memora · By Black Core Tech</span></footer>
     {demoOpen && <div className="demo-overlay"><div className="demo-modal"><button className="demo-close" onClick={()=>setDemoOpen(false)}>×</button><div className="demo-intro"><span className="eyebrow">INTERACTIVE PREVIEW</span><h2>Take a little look around.</h2><p>This is a simulated product demo with fictional sample files. No real files are uploaded or stored.</p></div><Demo/></div></div>}
   </main>;
